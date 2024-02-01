@@ -49,6 +49,12 @@ class RedmineOauthController < AccountController
         state: oauth_csrf_token,
         scope: 'profile email'
       )
+    when 'FES Ehemalige SSO'
+      redirect_to oauth_client.auth_code.authorize_url(
+        redirect_uri: oauth_callback_url,
+        state: oauth_csrf_token,
+        scope: 'openid email'
+      )
     when 'Keycloak'
       redirect_to oauth_client.auth_code.authorize_url(
         redirect_uri: oauth_callback_url,
@@ -91,6 +97,11 @@ class RedmineOauthController < AccountController
                                     headers: { 'Accept' => 'application/json' })
       user_info = JSON.parse(userinfo_response.body)
       user_info['login'] = user_info['email']
+      email = user_info['email']
+    when 'FES Ehemalige SSO'
+      token = oauth_client.auth_code.get_token(params['code'], redirect_uri: oauth_callback_url)
+      user_info = JWT.decode(token.token, nil, false).first
+      user_info['login'] = user_info['preferred_username']
       email = user_info['email']
     when 'Keycloak'
       token = oauth_client.auth_code.get_token(params['code'], redirect_uri: oauth_callback_url)
@@ -201,6 +212,14 @@ class RedmineOauthController < AccountController
           site: site,
           authorize_url: '/o/oauth2/v2/auth',
           token_url: 'https://oauth2.googleapis.com/token'
+        )
+      when 'FES Ehemalige SSO'
+        OAuth2::Client.new(
+          Setting.plugin_redmine_oauth[:client_id],
+          Setting.plugin_redmine_oauth[:client_secret],
+          site: site,
+          authorize_url: "/auth/realms/#{Setting.plugin_redmine_oauth[:tenant_id]}/protocol/openid-connect/auth",
+          token_url: "/auth/realms/#{Setting.plugin_redmine_oauth[:tenant_id]}/protocol/openid-connect/token"
         )
       when 'Keycloak'
         OAuth2::Client.new(
