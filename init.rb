@@ -20,6 +20,7 @@
 
 require 'redmine'
 require File.expand_path('lib/redmine_oauth/hooks', __dir__)
+require_relative 'lib/redmine_oauth/account_controller_patch'
 
 Redmine::Plugin.register :redmine_oauth do
   name 'Redmine OAuth plugin'
@@ -41,3 +42,5 @@ Redmine::Plugin.register :redmine_oauth do
     button_icon: 'fas fa-address-card'
   }, partial: 'settings/oauth_settings'
 end
+
+AccountController.prepend(RedmineOauth::AccountControllerPatch)
